@@ -42,7 +42,7 @@
 
 #include <linux/atomic.h>
 
-#include <linux/timecounter>
+#include <linux/timecounter.h>
 
 #define MAX_MSIX_P_PORT		17
 #define MAX_MSIX		64
