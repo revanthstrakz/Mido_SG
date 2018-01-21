@@ -1740,7 +1740,7 @@ static void hdd_batch_scan_result_ind_callback
     if ((NULL == pBatchScanRsp) || (NULL == pReq))
     {
          VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-            "%s: pBatchScanRsp is %p pReq %p", __func__, pBatchScanRsp, pReq);
+            "%s: pBatchScanRsp is %pK pReq %pK", __func__, pBatchScanRsp, pReq);
             isLastAp = TRUE;
          goto done;
     }
@@ -1764,7 +1764,7 @@ static void hdd_batch_scan_result_ind_callback
         if (NULL == pScanList)
         {
             VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-              "%s: pScanList is %p", __func__, pScanList);
+              "%s: pScanList is %pK", __func__, pScanList);
             isLastAp = TRUE;
            goto done;
         }
@@ -1791,7 +1791,7 @@ static void hdd_batch_scan_result_ind_callback
             if (NULL == pApMetaInfo)
             {
                 VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                  "%s: pApMetaInfo is %p", __func__, pApMetaInfo);
+                  "%s: pApMetaInfo is %pK", __func__, pApMetaInfo);
                 isLastAp = TRUE;
                 goto done;
             }
@@ -6532,7 +6532,7 @@ static void hdd_GetTsmStatsCB( tAniTrafStrmMetrics tsmMetrics, const tANI_U32 st
    if (NULL == pContext)
    {
       hddLog(VOS_TRACE_LEVEL_ERROR,
-             "%s: Bad param, pContext [%p]",
+             "%s: Bad param, pContext [%pK]",
              __func__, pContext);
       return;
    }
@@ -6550,7 +6550,7 @@ static void hdd_GetTsmStatsCB( tAniTrafStrmMetrics tsmMetrics, const tANI_U32 st
       /* the caller presumably timed out so there is nothing we can do */
       spin_unlock(&hdd_context_lock);
       hddLog(VOS_TRACE_LEVEL_WARN,
-             "%s: Invalid context, pAdapter [%p] magic [%08x]",
+             "%s: Invalid context, pAdapter [%pK] magic [%08x]",
               __func__, pAdapter, pStatsContext->magic);
       return;
    }
@@ -8800,7 +8800,7 @@ void hdd_monPostMsgCb(tANI_U32 *magic, struct completion *cmpVar)
 {
     if (magic == NULL || cmpVar == NULL) {
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                  FL("invalid arguments %p %p"), magic, cmpVar);
+                  FL("invalid arguments %pK %pK"), magic, cmpVar);
         return;
     }
     if (*magic != MON_MODE_MSG_MAGIC) {
@@ -9659,6 +9659,72 @@ static void hdd_sap_restart_handle(struct work_struct *work)
 }
 
 
+/**
+ * __hdd_force_scc_with_ecsa_handle() - to handle force scc using ecsa
+ * @work: name of the work
+ *
+ * Purpose of this function is to force SCC using ECSA. This function
+ * will be called from workqueue.
+ *
+ * Return: void.
+ */
+static void
+__hdd_force_scc_with_ecsa_handle(struct work_struct *work)
+{
+    hdd_adapter_t *sap_adapter;
+    hdd_station_ctx_t *sta_ctx;
+    hdd_adapter_t *sta_adapter;
+    hdd_context_t *hdd_ctx = container_of(to_delayed_work(work),
+                                          hdd_context_t,
+                                          ecsa_chan_change_work);
+
+    if (wlan_hdd_validate_context(hdd_ctx))
+        return;
+
+    sap_adapter = hdd_get_adapter(hdd_ctx,
+                                  WLAN_HDD_SOFTAP);
+    if (!sap_adapter) {
+        hddLog(LOGE, FL("sap_adapter is NULL"));
+        return;
+    }
+
+    sta_adapter = hdd_get_adapter(hdd_ctx,
+                                  WLAN_HDD_INFRA_STATION);
+    if (!sta_adapter) {
+        hddLog(LOGE, FL("sta_adapter is NULL"));
+        return;
+    }
+    sta_ctx = WLAN_HDD_GET_STATION_CTX_PTR(sta_adapter);
+
+    if (sta_ctx->conn_info.connState != eConnectionState_Associated) {
+        hddLog(LOGE, FL("sta not in connected state %d"),
+               sta_ctx->conn_info.connState);
+        return;
+    }
+
+    hddLog(LOGE, FL("Switch SAP to SCC channel %d"),
+           sta_ctx->conn_info.operationChannel);
+    wlansap_set_channel_change((WLAN_HDD_GET_CTX(sap_adapter))->pvosContext,
+                               sta_ctx->conn_info.operationChannel, true);
+}
+
+/**
+ * hdd_force_scc_with_ecsa_handle() - to handle force scc using ecsa
+ * @work: name of the work
+ *
+ * Purpose of this function is to force SCC using ECSA. This function
+ * will be called from workqueue.
+ *
+ * Return: void.
+ */
+static void
+hdd_force_scc_with_ecsa_handle(struct work_struct *work)
+{
+    vos_ssr_protect(__func__);
+    __hdd_force_scc_with_ecsa_handle(work);
+    vos_ssr_unprotect(__func__);
+}
+
 VOS_STATUS hdd_stop_all_adapters( hdd_context_t *pHddCtx )
 {
    hdd_adapter_list_node_t *pAdapterNode = NULL, *pNext = NULL;
@@ -10123,8 +10189,8 @@ void hdd_dump_concurrency_info(hdd_context_t *pHddCtx)
    if (staChannel > 0 && (apChannel > 0 || p2pChannel > 0)) {
        ccMode = (p2pChannel==staChannel||apChannel==staChannel) ? "SCC" : "MCC";
    }
-   hddLog(VOS_TRACE_LEVEL_INFO, "wlan(%d) " MAC_ADDRESS_STR " %s",
-                staChannel, MAC_ADDR_ARRAY(staBssid), ccMode);
+   hddLog(VOS_TRACE_LEVEL_ERROR, "wlan(%d) " MAC_ADDRESS_STR " %s",
+	  staChannel, MAC_ADDR_ARRAY(staBssid), ccMode);
    if (p2pChannel > 0) {
        hddLog(VOS_TRACE_LEVEL_ERROR, "p2p-%s(%d) " MAC_ADDRESS_STR,
                      p2pMode, p2pChannel, MAC_ADDR_ARRAY(p2pBssid));
@@ -10606,12 +10672,12 @@ static void hdd_full_power_callback(void *callbackContext, eHalStatus status)
    struct statsContext *pContext = callbackContext;
 
    hddLog(VOS_TRACE_LEVEL_INFO,
-          "%s: context = %p, status = %d", __func__, pContext, status);
+          "%s: context = %pK, status = %d", __func__, pContext, status);
 
    if (NULL == callbackContext)
    {
       hddLog(VOS_TRACE_LEVEL_ERROR,
-             "%s: Bad param, context [%p]",
+             "%s: Bad param, context [%pK]",
              __func__, callbackContext);
       return;
    }
@@ -11134,6 +11200,7 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
    hdd_close_all_adapters( pHddCtx );
 
    vos_flush_delayed_work(&pHddCtx->spoof_mac_addr_work);
+   vos_flush_delayed_work(&pHddCtx->ecsa_chan_change_work);
    vos_flush_work(&pHddCtx->sap_start_work);
 
 free_hdd_ctx:
@@ -11641,6 +11708,11 @@ static int hdd_generate_iface_mac_addr_auto(hdd_context_t *pHddCtx,
          pHddCtx->cfg_ini->intfMacAddr[i].bytes[4] = (serialno >> 8) & 0xFF;
          pHddCtx->cfg_ini->intfMacAddr[i].bytes[5] = serialno & 0xFF;
 
+		if (0 == memcmp(&pHddCtx->cfg_ini->intfMacAddr[i].bytes[0],
+				&mac_addr.bytes[0], VOS_MAC_ADDR_SIZE))
+			pHddCtx->cfg_ini->intfMacAddr[i].bytes[5] +=
+				VOS_MAX_CONCURRENCY_PERSONA;
+
          serialno++;
          hddLog(VOS_TRACE_LEVEL_ERROR,
                    "%s: Derived Mac Addr: "
@@ -12128,6 +12200,8 @@ int hdd_wlan_startup(struct device *dev )
    vos_init_delayed_work(&pHddCtx->spoof_mac_addr_work,
                                 hdd_processSpoofMacAddrRequest);
    vos_init_work(&pHddCtx->sap_start_work, hdd_sap_restart_handle);
+   vos_init_delayed_work(&pHddCtx->ecsa_chan_change_work,
+                                hdd_force_scc_with_ecsa_handle);
 
 #ifdef FEATURE_WLAN_TDLS
    /* tdls_lock is initialized before an hdd_open_adapter ( which is
@@ -13495,11 +13569,28 @@ VOS_STATUS hdd_softap_sta_deauth(hdd_adapter_t *pAdapter,
 {
     v_CONTEXT_t pVosContext = (WLAN_HDD_GET_CTX(pAdapter))->pvosContext;
     VOS_STATUS vosStatus = VOS_STATUS_E_FAULT;
+    struct hdd_cache_sta_info *cache_sta_info;
+    ptSapContext pSapCtx = VOS_GET_SAP_CB(pVosContext);
 
     ENTER();
 
-    hddLog(LOG1, "hdd_softap_sta_deauth:(%p, false)",
+    hddLog(LOG1, "hdd_softap_sta_deauth:(%pK, false)",
            (WLAN_HDD_GET_CTX(pAdapter))->pvosContext);
+
+    if (!pSapCtx) {
+        hddLog(LOGE, "sap context is NULL");
+        return vosStatus;
+    }
+
+    cache_sta_info = hdd_get_cache_stainfo(pSapCtx->cache_sta_info,
+                                           pDelStaParams->peerMacAddr);
+    if (cache_sta_info) {
+        cache_sta_info->reason_code = pDelStaParams->reason_code;
+        cache_sta_info->rx_rate =
+                wlan_tl_get_sta_rx_rate(pVosContext, cache_sta_info->ucSTAId);
+        WLANTL_GetSAPStaRSSi(pVosContext, cache_sta_info->ucSTAId,
+                             &cache_sta_info->rssi);
+    }
 
     //Ignore request to deauth bcmc station
     if (pDelStaParams->peerMacAddr[0] & 0x1)
@@ -13582,15 +13673,32 @@ int hdd_del_all_sta(hdd_adapter_t *pAdapter)
 
 void hdd_softap_sta_disassoc(hdd_adapter_t *pAdapter,v_U8_t *pDestMacAddress)
 {
-        v_CONTEXT_t pVosContext = (WLAN_HDD_GET_CTX(pAdapter))->pvosContext;
+    v_CONTEXT_t pVosContext = (WLAN_HDD_GET_CTX(pAdapter))->pvosContext;
+    struct hdd_cache_sta_info *cache_sta_info;
+    ptSapContext  pSapCtx = VOS_GET_SAP_CB(pVosContext);
 
     ENTER();
 
-    hddLog( LOGE, "hdd_softap_sta_disassoc:(%p, false)", (WLAN_HDD_GET_CTX(pAdapter))->pvosContext);
+    hddLog( LOGE, "hdd_softap_sta_disassoc:(%pK, false)", (WLAN_HDD_GET_CTX(pAdapter))->pvosContext);
+
+    if (!pSapCtx) {
+        hddLog(LOGE, "sap context is NULL");
+        return ;
+    }
 
     //Ignore request to disassoc bcmc station
     if( pDestMacAddress[0] & 0x1 )
        return;
+
+    cache_sta_info = hdd_get_cache_stainfo(pSapCtx->cache_sta_info,
+                                           pDestMacAddress);
+    if (cache_sta_info) {
+        cache_sta_info->reason_code = eSIR_MAC_DEAUTH_LEAVING_BSS_REASON;
+        cache_sta_info->rx_rate =
+                wlan_tl_get_sta_rx_rate(pVosContext, cache_sta_info->ucSTAId);
+        WLANTL_GetSAPStaRSSi(pVosContext, cache_sta_info->ucSTAId,
+                             &cache_sta_info->rssi);
+    }
 
     WLANSAP_DisassocSta(pVosContext,pDestMacAddress);
 }
@@ -13601,7 +13709,7 @@ void hdd_softap_tkip_mic_fail_counter_measure(hdd_adapter_t *pAdapter,v_BOOL_t e
 
     ENTER();
 
-    hddLog( LOGE, "hdd_softap_tkip_mic_fail_counter_measure:(%p, false)", (WLAN_HDD_GET_CTX(pAdapter))->pvosContext);
+    hddLog( LOGE, "hdd_softap_tkip_mic_fail_counter_measure:(%pK, false)", (WLAN_HDD_GET_CTX(pAdapter))->pvosContext);
 
     WLANSAP_SetCounterMeasure(pVosContext, (v_BOOL_t)enable);
 }
@@ -13949,7 +14057,7 @@ static VOS_STATUS wlan_hdd_framework_restart(hdd_context_t *pHddCtx)
    if ((NULL == pAdapterNode) || (VOS_STATUS_SUCCESS != status))
    {
        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                 FL("fail to get adapter: %p %d"), pAdapterNode, status);
+                 FL("fail to get adapter: %pK %d"), pAdapterNode, status);
        goto end;
    }
 
