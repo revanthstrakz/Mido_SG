@@ -1088,12 +1088,6 @@ config ARM64_ERRATUM_843419
 
 endmenu
 
-menu "CPUQuiet Framework"
-
-source "drivers/cpuquiet/Kconfig"
-
-endmenu
-
 source "net/Kconfig"
 
 source "drivers/Kconfig"
