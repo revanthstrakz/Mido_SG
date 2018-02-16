@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -4838,7 +4838,7 @@ tSirRetStatus
 limEnableHT20Protection(tpAniSirGlobal pMac, tANI_U8 enable,
     tANI_U8 overlap, tpUpdateBeaconParams pBeaconParams,tpPESession psessionEntry)
 {
-        if(!psessionEntry->htCapability)
+    if(!psessionEntry->htCapability)
         return eSIR_SUCCESS; // this protection  is only for HT stations.
 
         //overlapping protection configuration check.
@@ -4865,7 +4865,7 @@ limEnableHT20Protection(tpAniSirGlobal pMac, tANI_U8 enable,
             }
         }
 
-        if (enable)
+    if (enable)
     {
         //If we are AP and HT capable, we need to set the HT OP mode
         //appropriately.
@@ -5033,7 +5033,7 @@ limEnableHT20Protection(tpAniSirGlobal pMac, tANI_U8 enable,
         }
     }
 
-        return eSIR_SUCCESS;
+    return eSIR_SUCCESS;
 }
 
 /** -------------------------------------------------------------
@@ -5048,7 +5048,7 @@ tSirRetStatus
 limEnableHTNonGfProtection(tpAniSirGlobal pMac, tANI_U8 enable,
     tANI_U8 overlap, tpUpdateBeaconParams pBeaconParams,tpPESession psessionEntry)
 {
-        if(!psessionEntry->htCapability)
+    if(!psessionEntry->htCapability)
         return eSIR_SUCCESS; // this protection  is only for HT stations.
 
         //overlapping protection configuration check.
@@ -5075,7 +5075,7 @@ limEnableHTNonGfProtection(tpAniSirGlobal pMac, tANI_U8 enable,
                  }
             }
         }
-        if(psessionEntry->limSystemRole == eLIM_AP_ROLE){
+    if(psessionEntry->limSystemRole == eLIM_AP_ROLE){
         if ((enable) && (false == psessionEntry->beaconParams.llnNonGFCoexist))
         {
             PELOG1(limLog(pMac, LOG1, FL(" => Prtection from non GF Enabled"));)
@@ -5104,7 +5104,7 @@ limEnableHTNonGfProtection(tpAniSirGlobal pMac, tANI_U8 enable,
         }
     }
 
-        return eSIR_SUCCESS;
+    return eSIR_SUCCESS;
 }
 
 /** -------------------------------------------------------------
@@ -5119,7 +5119,7 @@ tSirRetStatus
 limEnableHTLsigTxopProtection(tpAniSirGlobal pMac, tANI_U8 enable,
     tANI_U8 overlap, tpUpdateBeaconParams pBeaconParams,tpPESession psessionEntry)
 {
-        if(!psessionEntry->htCapability)
+    if(!psessionEntry->htCapability)
         return eSIR_SUCCESS; // this protection  is only for HT stations.
 
         //overlapping protection configuration check.
@@ -5148,7 +5148,7 @@ limEnableHTLsigTxopProtection(tpAniSirGlobal pMac, tANI_U8 enable,
         }
 
 
-        if(psessionEntry->limSystemRole == eLIM_AP_ROLE){
+    if(psessionEntry->limSystemRole == eLIM_AP_ROLE){
         if ((enable) && (false == psessionEntry->beaconParams.fLsigTXOPProtectionFullSupport))
         {
             PELOG1(limLog(pMac, LOG1, FL(" => Prtection from LsigTxop Enabled"));)
@@ -5176,7 +5176,7 @@ limEnableHTLsigTxopProtection(tpAniSirGlobal pMac, tANI_U8 enable,
             pBeaconParams->paramChangeBitmap |= PARAM_LSIG_TXOP_FULL_SUPPORT_CHANGED;
         }
     }
-        return eSIR_SUCCESS;
+    return eSIR_SUCCESS;
 }
 //FIXME_PROTECTION : need to check for no APSD whenever we want to enable this protection.
 //This check will be done at the caller.
@@ -5192,7 +5192,7 @@ tSirRetStatus
 limEnableHtRifsProtection(tpAniSirGlobal pMac, tANI_U8 enable,
     tANI_U8 overlap, tpUpdateBeaconParams pBeaconParams,tpPESession psessionEntry)
 {
-        if(!psessionEntry->htCapability)
+    if(!psessionEntry->htCapability)
         return eSIR_SUCCESS; // this protection  is only for HT stations.
 
 
@@ -6038,29 +6038,6 @@ void limDelAllBASessions(tpAniSirGlobal pMac)
             limDeleteBASessions(pMac, pSessionEntry, BA_BOTH_DIRECTIONS,
                                 eSIR_MAC_UNSPEC_FAILURE_REASON);
         }
-    }
-}
-
-/** -------------------------------------------------------------
-\fn     limDelAllBASessionsBtc
-\brief  Deletes all the exisitng BA receipent sessions in 2.4GHz
-        band.
-\param  tpAniSirGlobal pMac
-\return None
--------------------------------------------------------------*/
-
-void limDelPerBssBASessionsBtc(tpAniSirGlobal pMac)
-{
-    tANI_U8 sessionId;
-    tpPESession pSessionEntry;
-    pSessionEntry = peFindSessionByBssid(pMac,pMac->btc.btcBssfordisableaggr,
-                                                                &sessionId);
-    if (pSessionEntry)
-    {
-        PELOGW(limLog(pMac, LOGW,
-        "Deleting the BA for session %d as host got BTC event", sessionId);)
-        limDeleteBASessions(pMac, pSessionEntry, BA_BOTH_DIRECTIONS,
-                            eSIR_MAC_PEER_TIMEDOUT_REASON);
     }
 }
 
@@ -9433,4 +9410,20 @@ int peFindBssIdxFromSmeSessionId(tpAniSirGlobal pMac, tANI_U8 sme_sessionId)
 
     limLog(pMac, LOG4, FL("Session lookup fails for sme_sessionId: "));
     return(0xFF);
+}
+void limStaDelBASession(tpAniSirGlobal pMac)
+{
+    tANI_U32 i;
+    tpPESession pSessionEntry;
+
+    for (i = 0; i < pMac->lim.maxBssId; i++)
+    {
+        pSessionEntry = peFindSessionBySessionId(pMac, i);
+        if (pSessionEntry &&
+            pSessionEntry->limSystemRole == eLIM_STA_ROLE)
+        {
+            limDeleteBASessions(pMac, pSessionEntry, BA_BOTH_DIRECTIONS,
+                                eSIR_MAC_UNSPEC_FAILURE_REASON);
+        }
+    }
 }

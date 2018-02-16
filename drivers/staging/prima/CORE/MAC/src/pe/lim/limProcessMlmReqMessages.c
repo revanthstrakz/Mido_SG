@@ -3543,6 +3543,8 @@ void lim_process_ap_ecsa_timeout(tpAniSirGlobal mac_ctx)
      */
     if (session->gLimChannelSwitch.switchCount > 0) {
         session->gLimChannelSwitch.switchCount--;
+        lim_send_chan_switch_action_frame(mac_ctx,
+                 session->gLimChannelSwitch.primaryChannel, session);
         mac_ctx->lim.limTimers.g_lim_ap_ecsa_timer.sessionId =
                                              session->peSessionId;
         limDeactivateAndChangeTimer(mac_ctx, eLIM_AP_ECSA_TIMER);
@@ -3951,7 +3953,7 @@ tLimMlmRemoveKeyCnf  mlmRemoveKeyCnf;
     * peer entity for which keys need to be removed.
     */
   pStaDs = dphLookupHashEntry( pMac, pMlmRemoveKeyReq->peerMacAddr, &aid, &psessionEntry->dph.dphHashTable );
-    if ((pStaDs == NULL) ||
+  if ((pStaDs == NULL) ||
          (pStaDs &&
          (pStaDs->mlmStaContext.mlmState !=
                        eLIM_MLM_LINK_ESTABLISHED_STATE)))
@@ -3970,9 +3972,9 @@ tLimMlmRemoveKeyCnf  mlmRemoveKeyCnf;
       mlmRemoveKeyCnf.sessionId = pMlmRemoveKeyReq->sessionId;
       
 
-    goto end;
+      goto end;
   }
-    else
+  else
     staIdx = pStaDs->staIndex;
   
 
@@ -4025,7 +4027,7 @@ limProcessMinChannelTimeout(tpAniSirGlobal pMac)
     if((psessionEntry = peFindSessionBySessionId(pMac, pMac->lim.limTimers.gLimMinChannelTimer.sessionId))== NULL) 
     {
         limLog(pMac, LOGP,FL("Session Does not exist for given sessionID"));
-    return;
+        return;
     }
 #endif
 
