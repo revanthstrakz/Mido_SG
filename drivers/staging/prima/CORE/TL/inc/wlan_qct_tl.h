@@ -3456,5 +3456,4 @@ v_U16_t wlan_tl_get_sta_rx_rate(void* pvosGCtx, uint8_t ucSTAId);
  * Return: void
  */
 void WLANTL_SetKeySeqCounter(void *pvosGCtx, u64 counter, uint8_t staid);
-
 #endif /* #ifndef WLAN_QCT_WLANTL_H */

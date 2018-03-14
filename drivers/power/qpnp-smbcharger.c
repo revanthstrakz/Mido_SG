@@ -4938,6 +4938,7 @@ static int smbchg_restricted_charging(struct smbchg_chip *chip, bool enable)
 }
 extern void ist30xx_set_ta_mode(bool mode);
 extern void tpd_usb_plugin(bool mode);
+extern void gtp_usb_plugin(bool mode);
 int set_usb_charge_mode_par = 0;
 static void handle_usb_removal(struct smbchg_chip *chip)
 {
@@ -4948,6 +4949,8 @@ static void handle_usb_removal(struct smbchg_chip *chip)
 		ist30xx_set_ta_mode(0);
 	} else if (set_usb_charge_mode_par == 2) {
 		tpd_usb_plugin(0);
+	} else if (set_usb_charge_mode_par == 3) {
+		gtp_usb_plugin(0);
 	}
 printk("set_usb_charge_mode_par off = %d\n", set_usb_charge_mode_par);
 	pr_smb(PR_STATUS, "triggered\n");
@@ -5030,6 +5033,8 @@ static void handle_usb_insertion(struct smbchg_chip *chip)
 		ist30xx_set_ta_mode(1);
 	} else if (set_usb_charge_mode_par == 2) {
 		tpd_usb_plugin(1);
+	} else if (set_usb_charge_mode_par == 3) {
+		gtp_usb_plugin(1);
 	}
 	pr_smb(PR_STATUS, "triggered\n");
 	/* usb inserted */
@@ -6169,9 +6174,6 @@ static void smbchg_external_power_changed(struct power_supply *psy)
 				msecs_to_jiffies(HVDCP_NOTIFY_MS));
 	}
 
-	if (usb_supply_type != POWER_SUPPLY_TYPE_USB)
-		goto  skip_current_for_non_sdp;
-
 	pr_smb(PR_MISC, "usb type = %s current_limit = %d\n",
 			usb_type_name, current_limit);
 
@@ -6179,9 +6181,6 @@ static void smbchg_external_power_changed(struct power_supply *psy)
 				current_limit);
 	if (rc < 0)
 		pr_err("Couldn't update USB PSY ICL vote rc=%d\n", rc);
-
-skip_current_for_non_sdp:
-	smbchg_vfloat_adjust_check(chip);
 
 	power_supply_changed(&chip->batt_psy);
 }
@@ -6589,6 +6588,14 @@ static irqreturn_t batt_warm_handler(int irq, void *_chip)
 {
 	struct smbchg_chip *chip = _chip;
 	u8 reg = 0;
+	int rc;
+	/* set the warm float voltage compensation,set the warm float voltage to 4.1V */
+	if (chip->float_voltage_comp != -EINVAL) {
+		rc = smbchg_float_voltage_comp_set(chip, chip->float_voltage_comp);
+	if (rc < 0)
+		dev_err(chip->dev, "Couldn't set float voltage comp rc = %d\n", rc);
+	pr_smb(PR_STATUS, "set float voltage comp to %d\n", chip->float_voltage_comp);
+}
 
 	smbchg_read(chip, &reg, chip->bat_if_base + RT_STS, 1);
 	chip->batt_warm = !!(reg & HOT_BAT_SOFT_BIT);
@@ -6605,6 +6612,12 @@ static irqreturn_t batt_cool_handler(int irq, void *_chip)
 {
 	struct smbchg_chip *chip = _chip;
 	u8 reg = 0;
+
+	int rc;
+	/* set the cool float voltage compensation ,set the cool float voltage to 4.4V*/
+	rc = smbchg_float_voltage_comp_set(chip, 0);
+	if (rc < 0)
+		dev_err(chip->dev, "Couldn't set float voltage comp rc = %d\n", rc);
 
 	smbchg_read(chip, &reg, chip->bat_if_base + RT_STS, 1);
 	chip->batt_cool = !!(reg & COLD_BAT_SOFT_BIT);
