@@ -67,6 +67,10 @@ rm -fv ${IMAGE};
     ${MAKE} clean
 # fi
 
+git checkout -q O/Dev;
+git cherry-pick 4dd5e1e7fa0c &> /dev/null;
+
+
 ${MAKE} $DEFCONFIG;
 START=$(date +"%s");
 ${MAKE} -j${JOBS};
