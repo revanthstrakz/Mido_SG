@@ -29,5 +29,5 @@ script:
   - export ARCH=arm64
   - export KERNELDIR=$HOME/SG
   - cd $HOME/SG
-  - chmod a+x SK/scripts/kernel.sh
-  - ./SK/scripts/kernel.sh
+  - chmod a+x SG/scripts/kernel.sh
+  - ./SG/scripts/kernel.sh
