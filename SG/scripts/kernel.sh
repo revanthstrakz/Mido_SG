@@ -35,7 +35,7 @@ export ANYKERNEL="${KERNELDIR}/SK/anykernel/";
 export ARCH="arm64";
 export SUBARCH="arm64";
 export TOOLCHAIN="${HOME}/LINARO/7.x";
-export DEFCONFIG="mido_defconfig";
+export DEFCONFIG="stormguard_defconfig";
 export ZIP_DIR="${KERNELDIR}/SG/files/";
 export IMAGE="${OUTDIR}/arch/${ARCH}/boot/Image.gz-dtb";
 
