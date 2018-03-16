@@ -31,7 +31,7 @@ fi
 
 export SRCDIR="${KERNELDIR}/${DEVICE}";
 export OUTDIR="${KERNELDIR}/out";
-export ANYKERNEL="${KERNELDIR}/SK/anykernel/";
+export ANYKERNEL="${KERNELDIR}/SG/anykernel/";
 export ARCH="arm64";
 export SUBARCH="arm64";
 export TOOLCHAIN="${HOME}/LINARO/7.x";
